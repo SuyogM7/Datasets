@@ -1,0 +1,93 @@
+CREATE FUNCTION [dbo].[getleaseterm] (@FromDate datetime, @ToDate datetime)
+RETURNS VARCHAR(50)
+AS  
+ BEGIN --Main Begin  
+ declare  @datetemp datetime, 
+ @month integer, 
+ @days integer,
+ @LDOMToDateDay numeric(21,0),
+ @LDOMFromDateDay numeric(21,0),
+ @FromDateDay numeric (21,6),    
+ @ToDateDay Numeric (21,6),
+ @DayDiff numeric (21,6),
+ @output VARCHAR(50),
+ @monthoutput VARCHAR(50),
+ @daysoutput VARCHAR(50)
+
+ SET  @LDOMFromDateDay = datepart(dd,dbo.last_day(@FromDate))    
+ SET  @LDOMToDateDay = datepart(dd,dbo.last_day(@ToDate))
+ SET  @FromDateDay = DATEPART(dd,@FromDate)    
+ SET  @ToDateDay = DATEPART(dd,@ToDate)  
+
+
+ if @LDOMFromDateDay = @LDOMToDateDay and @FromDateDay < @ToDateDay
+ begin 
+	set @month = datediff(mm, @FromDate, @ToDate)
+	set @days = @ToDateDay - @FromDateDay + 1
+ end
+
+ if @LDOMFromDateDay = @LDOMToDateDay and @FromDateDay > @ToDateDay
+ begin
+	set @month = datediff(mm, @FromDate, @ToDate) - 1
+	set @days = @ToDateDay + (@LDOMFromDateDay - @FromDateDay) + 1
+ end
+
+ if @LDOMFromDateDay = @LDOMToDateDay and @FromDateDay = @ToDateDay + 1
+ begin
+	set @month = datediff(mm, @FromDate, @ToDate)
+	set @days = 0
+ end
+
+ if @LDOMFromDateDay <> @LDOMToDateDay and @FromDateDay < @ToDateDay
+ begin
+	set @month = datediff(mm, @FromDate, @ToDate)
+	set @days = @ToDateDay - @FromDateDay + 1
+ end
+
+ if @LDOMFromDateDay <> @LDOMToDateDay and (@FromDateDay > @ToDateDay or @FromDateDay = @ToDateDay)
+ begin
+	set @month = datediff(mm, @FromDate, @ToDate) 
+	set @DayDiff = @LDOMToDateDay - @ToDateDay
+	set @FromDate = @FromDate + @DayDiff
+	set @days = @LDOMToDateDay - datepart(dd, @FromDate) + 1
+ end
+
+ if @LDOMFromDateDay < @LDOMToDateDay and @FromDateDay >= @ToDateDay
+ begin
+	set @month = @month - 1
+ end
+
+ if @ToDateDay = @LDOMToDateDay
+ begin
+	set @days = @LDOMFromDateDay - @FromDateDay + 1
+ end
+
+ if @days = @LDOMFromDateDay
+ begin
+	set @days = 0
+	set @month = @month + 1
+ end
+
+ if @days > @LDOMFromDateDay
+ begin
+  set @days = @days - @LDOMFromDateDay
+  set @month = @month + 1
+ end
+
+ if @days < 0
+ begin
+	set @days = @LDOMFromDateDay - @FromDateDay
+ end
+
+ select @daysoutput = (CASE WHEN @days = 0 THEN ''
+	ELSE CONVERT(VARCHAR(10), @days) + ' ' + 'Days'
+	END)
+
+ select @monthoutput = (CASE WHEN @month = 0 THEN ''
+	ELSE CONVERT(VARCHAR(10), @month) + ' ' + 'Month'
+	END)
+
+ select @output = @monthoutput + ' ' + @daysoutput
+
+ RETURN @output
+ END
